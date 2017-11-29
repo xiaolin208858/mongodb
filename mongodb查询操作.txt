@@ -1,0 +1,91 @@
+查询：find()
+    指定返回的键：
+        find({查询文档},{键：1，键：0})   1：表示要返回（只返回为1 ），0：表示不返回（返回不包含0的）
+
+    比较运算符：
+        $lt:    <
+        $lte:   <=
+        $gt:    >
+        $gte:   =>
+        $eq:    =
+        $ne:    !=
+
+    OR查询:多个条件，只要满足其一，就匹配。
+
+        $or
+            find({$or:[{键：值},{键：值},....]})
+            一、一键匹配多值
+            二、多键组成条件数组
+        $not:匹配不满足指定条件的文档
+            find（{键：{$not:{条件文档}}}）
+
+    特定类型查询:
+        null:查询文档中的null
+            键值为null或键不存在的文档
+            db.集合名.find（{键：null}）
+            返回值为等于null文档，和不存在的文档
+        $exists：判断指定键是否存在。
+            db.集合名.find({键：{$eq:null,$exists:true}})
+
+    查询数组：
+        $all：专门比较一个数组类型的键中是否包含所有指定元素
+            db.集合名.find({键：{$all:[值1，值2...]}})
+        $size：查询特定长度的数组(不可用比较运算符)
+            db.集合名.find({键：{$size:n}})
+        $slice：专门用于截取返回数组中指定位置的子数组
+            db.集合名.find({查询文档},{键：{$slice:[starti,n]}.....})
+                从starti位置开始，仅保留N个元素（n：截取开头的n个元素，-n：截取结尾的n个元素）
+        $elemMatch:求两个边界条件，只能匹配且只匹配一个数组元素
+            db.集合名.find（{键：{$elemMatch:{$gt:下边界，$lt上边界}}}）
+
+            查询范围：db.集合名.find({}).min({键：下边界}).max（{键：上边界}）
+
+    游标API:
+        获取游标：
+            let cursor=db.集合名.find（{查询文档}）
+            cursor.hasNext()判断结果集中是否还有下一个
+            cursor.next()获得查询结果中的一条文档记录
+        sort:专门对查询结果集按指定的键排序
+            db.集合名.find({查询文档}).sort（{键：1，键：-1}）1:升/-1:降
+        skip：专门设置跳过开头指定个数的文档
+            db.集合名.find({查询文档}).skip(n)
+        limit:设置要读取文档个数的上限
+            db.集合名.find({查询文档}).limit(n)
+
+分页查询：db.集合名.find({查询文档}).limit(n).skip(m)
+        优化查询，保存上一页最后一个文档的临界值
+
+        random：生成随机数
+
+索引：
+
+        db.集合名.ensureIndex（{键1：排序},
+                {unique：true，           建立唯一索引
+                 sparse:true              建立稀疏索引
+                 name:"自定义索引名",
+                 background:true
+                }）
+    创建：
+        db.集合名.ensureIndex({"键"：1}) 1：升序排列，-1：降序排列
+    复合索引：
+        db.集合名.ensureIndex({键1:1，键2})
+
+
+
+索引类型：规定一个集合中一个键的值不能重复
+    db.myColl.ensureIndex({键：1}，{unique:true});
+
+
+固定集合：固定集合必须先显示创建
+    db.createCollection("集合名",{capped:true,size:字节数，max:个数})
+    特点：
+        size表示集合的固定空间大小
+        max:表示最大文档数量，指定max同时，必须指定size
+        达到两者其中之一限制，则先删除最旧的文档，然后在插入文档
+
+
+TTL索引
+    db.集合名.ensureIndex({键：1},{expireAfterSeconds：过期周期(s)})   创建索引时就删除过期的文档
+
+    db.runCommand({ collMod:"集合名",index:{keyPattern:{键：1}，expireAfterSeconds：周期(s)}})
+        （返回旧周期和新周期的秒数）
